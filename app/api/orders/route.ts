@@ -29,7 +29,7 @@ export async function GET(req: Request) {
   const status = searchParams.get("status") ?? "";
 
   const where = {
-    ...(status ? { status: status as any } : {}),
+    ...(status ? { status: status as import("@prisma/client").OrderStatus } : {}),
     ...(search
       ? {
           OR: [

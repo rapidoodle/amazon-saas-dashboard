@@ -5,10 +5,11 @@ import { useSession } from "next-auth/react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
-import { Badge, OrderStatusBadge } from "@/components/ui/badge";
+import { OrderStatusBadge } from "@/components/ui/badge";
 import { Modal, ConfirmModal } from "@/components/ui/modal";
 import { hasPermission } from "@/lib/permissions";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const ORDER_STATUSES = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
 
@@ -32,6 +33,7 @@ export default function OrdersPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const debouncedSearch = useDebounce(search, 300);
 
   const [editOrder, setEditOrder] = useState<Order | null>(null);
   const [editStatus, setEditStatus] = useState("");
@@ -44,14 +46,14 @@ export default function OrdersPage() {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams({ page: String(page), limit: "15" });
-    if (search) params.set("search", search);
+    if (debouncedSearch) params.set("search", debouncedSearch);
     if (statusFilter) params.set("status", statusFilter);
     const res = await fetch(`/api/orders?${params}`);
     const data = await res.json();
     setOrders(data.orders ?? []);
     setTotal(data.total ?? 0);
     setLoading(false);
-  }, [page, search, statusFilter]);
+  }, [page, debouncedSearch, statusFilter]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -91,6 +93,7 @@ export default function OrdersPage() {
             placeholder="Search by customer or order ID…"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+
             className="max-w-xs"
           />
           <Select
