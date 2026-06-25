@@ -6,6 +6,11 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { RevenueChart } from "@/components/charts/revenue-chart";
 import { TopProductsChart } from "@/components/charts/top-products-chart";
 import { DailyReviewAlert } from "@/components/dashboard/daily-review-alert";
+import { AccountHealthCard, type AccountHealthData } from "@/components/dashboard/account-health-card";
+import { PerformanceNotificationsCard, type PerformanceNotification } from "@/components/dashboard/performance-notifications-card";
+import { OpenCasesCard, type SupportCase } from "@/components/dashboard/open-cases-card";
+import { BuyerMessagesCard, type BuyerMessage } from "@/components/dashboard/buyer-messages-card";
+import { InboundPerformanceCard, type InboundShipment } from "@/components/dashboard/inbound-performance-card";
 import { formatCurrency, percentChange } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +30,144 @@ export default async function DashboardPage({
 
   const sessionCount = Math.floor(stats.totalOrders * 18.5);
   const conversionRate = ((stats.totalOrders / sessionCount) * 100).toFixed(1);
+
+  // ── DR Check mock data (replace with SP-API calls once env vars are set) ──
+
+  const accountHealth: AccountHealthData = {
+    score: 178,
+    status: "GOOD",
+    metrics: [
+      { label: "Order Defect Rate", value: "0.12%", threshold: "< 1%", status: "OK" },
+      { label: "Late Shipment Rate", value: "1.8%", threshold: "< 4%", status: "OK" },
+      { label: "Pre-fulfillment Cancel", value: "0.5%", threshold: "< 2.5%", status: "OK" },
+      { label: "Valid Tracking Rate", value: "97.3%", threshold: "> 95%", status: "OK" },
+      { label: "Invoice Defect Rate", value: "0.0%", threshold: "< 5%", status: "OK" },
+    ],
+    policyViolations: [],
+  };
+
+  const performanceNotifications: PerformanceNotification[] = [
+    {
+      id: "pn-1",
+      type: "WARNING",
+      title: "Late Shipment Rate approaching threshold",
+      description: "Your late shipment rate is 1.8%. Sustained rates above 4% may affect account standing.",
+      date: "2026-06-24",
+      actionRequired: false,
+    },
+    {
+      id: "pn-2",
+      type: "INFO",
+      title: "New FBA storage fee policy effective July 1",
+      description: "Amazon is updating aged inventory surcharge calculations. Review your IPI score.",
+      date: "2026-06-23",
+      actionRequired: false,
+    },
+  ];
+
+  const openCases: SupportCase[] = [
+    {
+      id: "CASE-00123456",
+      subject: "FBA shipment FBA15XYZ123 — 4 units missing after receiving",
+      status: "PENDING_SELLER",
+      priority: "HIGH",
+      createdAt: "2026-06-20",
+      lastUpdated: "2026-06-24",
+      category: "FBA Issue",
+    },
+    {
+      id: "CASE-00123457",
+      subject: "Listing B08XYZ9012 suppressed — safety compliance",
+      status: "OPEN",
+      priority: "HIGH",
+      createdAt: "2026-06-22",
+      lastUpdated: "2026-06-22",
+      category: "Listing Issue",
+    },
+    {
+      id: "CASE-00123458",
+      subject: "Reimbursement request for damaged return #114-123456",
+      status: "PENDING_AMAZON",
+      priority: "MEDIUM",
+      createdAt: "2026-06-18",
+      lastUpdated: "2026-06-23",
+      category: "Reimbursement",
+    },
+  ];
+
+  const buyerMessages: BuyerMessage[] = [
+    {
+      id: "msg-1",
+      orderId: "114-1234567-8901234",
+      subject: "Where is my order?",
+      preview: "Hi, I ordered 5 days ago and the tracking hasn't updated since the 20th.",
+      receivedAt: "2026-06-25 08:14 AM",
+      hoursAgo: 3,
+      isRead: false,
+      requiresResponse: true,
+      responseDeadlineHours: 24,
+    },
+    {
+      id: "msg-2",
+      orderId: "114-9876543-2109876",
+      subject: "Wrong item received",
+      preview: "I received a black unit but ordered the white one. Can you help?",
+      receivedAt: "2026-06-24 10:30 PM",
+      hoursAgo: 15,
+      isRead: false,
+      requiresResponse: true,
+      responseDeadlineHours: 24,
+    },
+    {
+      id: "msg-3",
+      orderId: "114-5555555-6666666",
+      subject: "Thank you!",
+      preview: "Just wanted to say the product is great. Very happy with my purchase.",
+      receivedAt: "2026-06-24 03:00 PM",
+      hoursAgo: 22,
+      isRead: true,
+      requiresResponse: false,
+      responseDeadlineHours: 24,
+    },
+  ];
+
+  const inboundShipments: InboundShipment[] = [
+    {
+      shipmentId: "FBA15XYZ001",
+      name: "Restock June W3 — Headphones",
+      status: "RECEIVING",
+      destination: "PHX7",
+      itemCount: 200,
+      receivedCount: 148,
+      issues: [
+        { type: "MISSING", count: 4, skus: ["SKU-001"] },
+      ],
+      lastUpdated: "2026-06-25",
+    },
+    {
+      shipmentId: "FBA15XYZ002",
+      name: "Restock June W3 — Cables",
+      status: "IN_TRANSIT",
+      destination: "ONT8",
+      itemCount: 500,
+      receivedCount: 0,
+      issues: [],
+      estimatedArrival: "2026-06-27",
+      lastUpdated: "2026-06-24",
+    },
+    {
+      shipmentId: "FBA15XYZ003",
+      name: "Restock June W2 — Stands",
+      status: "CLOSED",
+      destination: "MDW2",
+      itemCount: 150,
+      receivedCount: 147,
+      issues: [
+        { type: "DAMAGED", count: 3, skus: ["SKU-004"] },
+      ],
+      lastUpdated: "2026-06-22",
+    },
+  ];
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -138,10 +281,14 @@ export default async function DashboardPage({
               <div className="space-y-2">
                 {[
                   { label: "Check pending orders", done: true },
+                  { label: "Review buyer messages", done: false },
+                  { label: "Check account health", done: true },
+                  { label: "Review performance notifications", done: false },
+                  { label: "Resolve open cases", done: false },
+                  { label: "Check inbound shipments", done: true },
                   { label: "Review inventory alerts", done: false },
-                  { label: "Respond to reviews", done: false },
-                  { label: "Monitor Buy Box", done: true },
                   { label: "Check suppressed listings", done: false },
+                  { label: "Monitor Buy Box", done: true },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-2">
                     <span
@@ -164,6 +311,23 @@ export default async function DashboardPage({
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* DR Checks — 5 key areas */}
+        <div>
+          <h2 className="text-sm font-semibold text-amazon-orange uppercase tracking-wide mb-3 flex items-center gap-2">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 3h6m-6 4h6m-6 4h6" />
+            </svg>
+            Daily Review Checks
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            <AccountHealthCard data={accountHealth} />
+            <PerformanceNotificationsCard notifications={performanceNotifications} />
+            <OpenCasesCard cases={openCases} />
+            <BuyerMessagesCard messages={buyerMessages} />
+            <InboundPerformanceCard shipments={inboundShipments} />
           </div>
         </div>
 

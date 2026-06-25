@@ -1,23 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getCurrentStoreCredentials } from "@/lib/store";
 import { getFbaInventory } from "@/lib/amazon-sp-api";
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const skusParam = req.nextUrl.searchParams.get("skus");
-  const skus = skusParam ? skusParam.split(",") : undefined;
-
   try {
-    const data = await getFbaInventory(skus);
+    const creds = await getCurrentStoreCredentials();
+    const skusParam = req.nextUrl.searchParams.get("skus");
+    const skus = skusParam ? skusParam.split(",") : undefined;
+    const data = await getFbaInventory(creds, skus);
     return NextResponse.json(data);
   } catch (err) {
-    console.error("[/api/amazon/inventory]", err);
-    return NextResponse.json(
-      { error: "Failed to fetch inventory", detail: String(err) },
-      { status: 502 }
-    );
+    const msg = err instanceof Error ? err.message : String(err);
+    const status = msg.includes("Not authenticated") || msg.includes("not linked") ? 401 : 502;
+    return NextResponse.json({ error: msg }, { status });
   }
 }

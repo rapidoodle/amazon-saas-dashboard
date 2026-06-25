@@ -1,15 +1,5 @@
 {
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/_not-found/page": "app/_not-found/page.js",
-  "/page": "app/page.js",
-  "/api/orders/route": "app/api/orders/route.js",
-  "/api/customers/route": "app/api/customers/route.js",
-  "/api/users/route": "app/api/users/route.js",
-  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
-  "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/(dashboard)/inventory/page": "app/(dashboard)/inventory/page.js",
-  "/(dashboard)/orders/page": "app/(dashboard)/orders/page.js",
-  "/(dashboard)/customers/page": "app/(dashboard)/customers/page.js",
-  "/(dashboard)/users/page": "app/(dashboard)/users/page.js",
-  "/(dashboard)/listings/page": "app/(dashboard)/listings/page.js"
+  "/api/amazon/oauth/authorize/route": "app/api/amazon/oauth/authorize/route.js",
+  "/(dashboard)/connect/page": "app/(dashboard)/connect/page.js"
 }

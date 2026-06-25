@@ -18,6 +18,18 @@ enum Role {
   VIEWER
 }
 
+enum StoreStatus {
+  ACTIVE
+  SUSPENDED
+  TRIAL
+}
+
+enum CredentialStatus {
+  CONNECTED
+  EXPIRED
+  DISCONNECTED
+}
+
 enum OrderStatus {
   PENDING
   PROCESSING
@@ -25,6 +37,46 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
 }
+
+// ─── Multi-tenant store ───────────────────────────────────────────────────────
+
+model Store {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique // url-safe identifier
+  status      StoreStatus @default(TRIAL)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  users       User[]
+  credentials AmazonCredentials?
+
+  @@map("stores")
+}
+
+model AmazonCredentials {
+  id               String           @id @default(cuid())
+  storeId          String           @unique
+  store            Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  sellerId         String           // Amazon Merchant/Seller ID
+  marketplaceId    String           @default("ATVPDKIKX0DER")
+  marketplaceName  String           @default("United States")
+
+  // Encrypted with AES-256-GCM (lib/encryption.ts)
+  // Format: "iv:authTag:ciphertext" (all base64)
+  refreshTokenEnc  String           // LWA refresh token
+  clientIdEnc      String?          // Optional: per-seller app credentials
+  clientSecretEnc  String?          // Optional: per-seller app credentials
+
+  status           CredentialStatus @default(CONNECTED)
+  connectedAt      DateTime         @default(now())
+  lastRefreshedAt  DateTime?
+
+  @@map("amazon_credentials")
+}
+
+// ─── Users ────────────────────────────────────────────────────────────────────
 
 model User {
   id            String    @id @default(cuid())
@@ -36,6 +88,9 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  storeId       String?
+  store         Store?    @relation(fields: [storeId], references: [id])
 
   @@map("users")
 }

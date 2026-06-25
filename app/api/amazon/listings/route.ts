@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getCurrentStoreCredentials } from "@/lib/store";
 import { getListings } from "@/lib/amazon-sp-api";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   try {
-    const data = await getListings(50);
+    const creds = await getCurrentStoreCredentials();
+    const data = await getListings(creds, 50);
     return NextResponse.json(data);
   } catch (err) {
-    console.error("[/api/amazon/listings]", err);
-    return NextResponse.json(
-      { error: "Failed to fetch listings", detail: String(err) },
-      { status: 502 }
-    );
+    const msg = err instanceof Error ? err.message : String(err);
+    const status = msg.includes("Not authenticated") || msg.includes("not linked") ? 401 : 502;
+    return NextResponse.json({ error: msg }, { status });
   }
 }
