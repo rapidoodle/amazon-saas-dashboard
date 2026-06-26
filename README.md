@@ -1,24 +1,6 @@
-# Amazon DR Dashboard — Amazon Seller Daily Review
+# Amazon DR Dashboard
 
-A full-stack SaaS dashboard built for Amazon sellers to run their **Daily Review (DR)** — tracking sales, FBA inventory, listing health, and reviews in one Amazon-branded interface.
-
-Built with **Next.js 14 (App Router)**, **TypeScript**, **Amazon SP-API**, **Prisma ORM**, **NextAuth.js**, and **Recharts**.
-
-## Amazon DR Features
-
-| Page | What it shows |
-|------|--------------|
-| **Daily Review** | Revenue, units ordered, sessions, Buy Box %, conversion rate, DR checklist |
-| **Inventory** | FBA stock levels, days of supply, restock alerts, stranded/unfulfillable units |
-| **Listings & Reviews** | Listing health, suppression issues, star ratings, negative reviews needing attention |
-| **Orders** | Order pipeline with status breakdown |
-
-## Connecting Amazon SP-API
-
-1. Copy `.env.local.example` → `.env.local`
-2. Fill in all `AMAZON_*` variables (see README below for step-by-step)
-3. Switch mock data to live SP-API calls in inventory/listings pages
-4. SP-API client is in `lib/amazon-sp-api.ts` — handles LWA auth + AWS SigV4 signing
+A multi-tenant SaaS dashboard for Amazon sellers to run their **Daily Review (DR)** — tracking sales, FBA inventory, listing health, account health, and seller performance in one place.
 
 ![Next.js](https://img.shields.io/badge/Next.js_14-black?style=flat&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
@@ -31,24 +13,32 @@ Built with **Next.js 14 (App Router)**, **TypeScript**, **Amazon SP-API**, **Pri
 
 ## Features
 
-- **Authentication** — Email/password login via NextAuth.js with JWT sessions and protected routes via middleware
-- **Role-based access control** — Admin, Manager, and Viewer roles with per-action permission guards on both API routes and UI
-- **Analytics dashboard** — Revenue trend (area chart), orders by status (donut chart), top products by revenue (bar chart)
-- **Full CRUD** — Orders, Products, and Customers with search, pagination, create/edit modals, and delete confirmation
-- **User management** — Admin-only panel to create users, change roles, and remove accounts
-- **REST API** — Typed API routes with Zod validation and role-checked endpoints for every entity
-- **Vercel-ready** — Deploys to Vercel with Neon Postgres in one click
+| Page | What it shows |
+|------|--------------|
+| **Daily Review** | Revenue, units ordered, sessions, Buy Box %, conversion rate, 9-point DR checklist |
+| **Account Health** | Health score, policy violations, performance metrics |
+| **Performance Notifications** | Critical alerts, warnings, action-required flags |
+| **Open Cases** | Support cases sorted by seller response needed |
+| **Buyer Messages** | Unread messages with 24h response countdown |
+| **Inventory** | FBA stock levels, days of supply, restock alerts, inbound shipments |
+| **Listings & Reviews** | Listing health, suppression issues, star ratings, negative review monitoring |
+
+**Platform**
+- Multi-tenant — each seller connects their own Amazon account via OAuth
+- Role-based access: Admin, Manager, Viewer
+- Amazon SP-API integration with LWA OAuth + AWS SigV4 signing
+- AES-256-GCM encrypted credential storage per store
 
 ---
 
-## Tech stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 14 (App Router) |
 | Language | TypeScript |
 | Styling | Tailwind CSS |
-| Database | PostgreSQL (Neon / Vercel Postgres) |
+| Database | PostgreSQL (Neon) |
 | ORM | Prisma |
 | Auth | NextAuth.js (credentials + JWT) |
 | Charts | Recharts |
@@ -57,28 +47,11 @@ Built with **Next.js 14 (App Router)**, **TypeScript**, **Amazon SP-API**, **Pri
 
 ---
 
-## Screenshots
-
-> Login → Dashboard → Orders → Products → Customers → Users (Admin only)
-
----
-
-## Role permissions
-
-| Action | Admin | Manager | Viewer |
-|---|---|---|---|
-| View all data | ✅ | ✅ | ✅ |
-| Create / edit records | ✅ | ✅ | ❌ |
-| Delete records | ✅ | ❌ | ❌ |
-| Manage users | ✅ | ❌ | ❌ |
-
----
-
-## Local setup
+## Local Setup
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL running locally
+- PostgreSQL (local or Neon)
 
 ### 1. Clone & install
 
@@ -91,23 +64,32 @@ npm install
 ### 2. Configure environment
 
 ```bash
-cp .env.example .env
+cp .env.local.example .env.local
 ```
 
-Edit `.env`:
+Required variables:
 
 ```env
-DATABASE_URL="postgresql://YOUR_USER@localhost:5432/saas_dashboard"
-NEXTAUTH_SECRET="your-secret"   # openssl rand -base64 32
+DATABASE_URL="postgresql://..."
+NEXTAUTH_SECRET="..."                  # openssl rand -base64 32
 NEXTAUTH_URL="http://localhost:3000"
+ENCRYPTION_KEY="..."                   # openssl rand -hex 32
+
+# Amazon SP-API (your developer app credentials)
+AMAZON_CLIENT_ID="amzn1.application-oa2-client.xxxx"
+AMAZON_CLIENT_SECRET="..."
+AMAZON_AWS_ACCESS_KEY="..."
+AMAZON_AWS_SECRET_KEY="..."
+AMAZON_AWS_REGION="us-east-1"
 ```
+
+> Per-seller credentials (refresh token, seller ID, marketplace ID) are collected via Amazon OAuth and stored encrypted in the database — not in env vars.
 
 ### 3. Set up the database
 
 ```bash
-createdb saas_dashboard
-npm run db:push    # push schema
-npm run db:seed    # seed demo data
+npx prisma generate
+npx prisma migrate dev --name init
 ```
 
 ### 4. Run
@@ -118,66 +100,75 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
-### Demo accounts
-
-| Role | Email | Password |
-|---|---|---|
-| Admin | admin@example.com | admin123 |
-| Manager | manager@example.com | manager123 |
-| Viewer | viewer@example.com | viewer123 |
-
 ---
 
-## Deploy to Vercel
+## Deploying to Vercel
 
-1. Push this repo to GitHub
-2. Import at [vercel.com/new](https://vercel.com/new)
-3. Add **Vercel Postgres** from the Storage tab
-4. Add `NEXTAUTH_SECRET` and `NEXTAUTH_URL` in Project Settings → Environment Variables
+1. Push to GitHub and import at [vercel.com/new](https://vercel.com/new)
+2. Go to **Storage** tab → **Create** → **Neon Postgres** (auto-injects `DATABASE_URL`)
+3. Add remaining env vars under **Settings → Environment Variables**
+4. Set the build command to:
+   ```
+   prisma generate && prisma migrate deploy && next build
+   ```
 5. Deploy
 
-After first deploy, seed the production database:
+---
 
-```bash
-DATABASE_URL="<your-neon-url>" npm run db:seed
-```
+## Onboarding a New Seller
+
+1. Seller signs up and lands on `/connect`
+2. Clicks **Connect Amazon Account** → redirects to Amazon OAuth consent
+3. After authorization, their store is created and credentials stored encrypted in the DB
+4. They land on `/dashboard` and see their live data
 
 ---
 
-## Project structure
+## Role Permissions
+
+| Action | Admin | Manager | Viewer |
+|---|---|---|---|
+| View all data | ✅ | ✅ | ✅ |
+| Create / edit records | ✅ | ✅ | ❌ |
+| Delete records | ✅ | ❌ | ❌ |
+| Manage users | ✅ | ❌ | ❌ |
+| Connect Amazon account | ✅ | ❌ | ❌ |
+
+---
+
+## Project Structure
 
 ```
 app/
-  (auth)/login/            # Login page
+  (auth)/login/
   (dashboard)/
-    dashboard/             # Daily Review — KPIs, revenue chart, DR checklist
-    inventory/             # FBA inventory table + restock alerts
+    dashboard/             # Daily Review — KPIs, revenue, DR checklist
+    inventory/             # FBA inventory + inbound shipments
     listings/              # Listings health + review monitoring
-    orders/                # Order management
-    products/              # Product management
-    customers/             # Customer management
-    users/                 # User management (Admin only)
+    connect/               # Amazon OAuth onboarding
   api/
     amazon/
+      oauth/authorize/     # Initiates Amazon OAuth flow
+      oauth/callback/      # Handles OAuth callback, saves credentials
       sales/               # SP-API Sales & Traffic
       inventory/           # SP-API FBA Inventory
       listings/            # SP-API Listings Items
-    ...                    # Standard CRUD routes
 components/
-  charts/                  # Recharts wrappers (Amazon-themed)
-  dashboard/               # StatCard, DailyReviewAlert
+  dashboard/               # StatCard, DailyReviewAlert, AccountHealth, etc.
   inventory/               # InventoryTable, InventoryAlerts
   listings/                # ListingsTable, ReviewSummary
-  layout/                  # Sidebar (Amazon branding), Header
+  connect/                 # ConnectAmazonButton
+  layout/                  # Sidebar, Header
   ui/                      # Button, Input, Modal, Badge, Skeleton
 lib/
-  amazon-sp-api.ts         # SP-API client (LWA auth + AWS SigV4)
+  amazon-sp-api.ts         # SP-API client — multi-tenant, per-store credentials
   auth.ts                  # NextAuth config
   db.ts                    # Prisma client singleton
+  encryption.ts            # AES-256-GCM encrypt/decrypt
   permissions.ts           # RBAC permission map
+  store.ts                 # Per-store credential resolution
 prisma/
-  schema.prisma            # Database schema
-  seed.ts                  # Demo seed data
+  schema.prisma            # DB schema (User, Store, AmazonCredentials)
 ```
 
 ---
