@@ -7,9 +7,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  // On Vercel Postgres (Neon), uncomment directUrl for migrations:
-  // directUrl = env("DATABASE_URL_NON_POOLING")
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 enum Role {

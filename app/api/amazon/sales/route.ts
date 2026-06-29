@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentStoreCredentials } from "@/lib/store";
 import { getSalesAndTraffic } from "@/lib/amazon-sp-api";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const creds = await getCurrentStoreCredentials();
